@@ -1,6 +1,19 @@
-def main():
-    print("Hello from pong-game!")
+from turtle import Turtle, Screen
 
 
-if __name__ == "__main__":
-    main()
+
+screen = Screen()
+screen.bgcolor("black")
+screen.setup(width=800, height=600)
+screen.title("Pong")
+
+
+
+
+
+
+
+
+
+
+screen.exitonclick()
