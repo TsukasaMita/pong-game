@@ -1,0 +1,76 @@
+name: Build Executables
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Python (for official Tkinter macOS build)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyInstaller (macOS / Windows pipeline)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+
+      - name: Build Executable
+        run: pyinstaller --onefile --console --name pong-game main.py
+
+      - name: Zip Artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd dist
+          zip -ry ../pong-game-${{ matrix.os }}.zip .
+
+      - name: Zip Artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          Compress-Archive -Path dist\* -DestinationPath pong-game-${{ matrix.os }}.zip
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pong-game-${{ matrix.os }}
+          path: pong-game-${{ matrix.os }}.zip
+          
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: pong-game-*
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "Latest Release"
+          body: "Automated build of the Pong Game."
+          files: |
+            artifacts/*.zip
+          draft: false
+          prerelease: false
